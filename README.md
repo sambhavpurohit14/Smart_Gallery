@@ -1,7 +1,7 @@
 # Smart_Gallery
 
-##Text encoder
+## Text encoder
 Implemented CBOW and BERT encoders
 
 
-##Image encoder
+## Image encoder
