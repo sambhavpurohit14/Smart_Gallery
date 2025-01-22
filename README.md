@@ -1,15 +1,3 @@
-# Smart Gallery Log
------------------------
-## Resources 
-### https://www.youtube.com/watch?v=ISNdQcPhsts
-### https://github.com/HandsOnLLM/Hands-On-Large-Language-Models
-### https://jalammar.github.io/
-### https://www.youtube.com/watch?v=bCz4OMemCcA
-## Text encoder
-### Dec 25 - 30 2024 Studied resources and implemented CBOW and BERT encoders for single sentence.
-### Jan 1 - 7 2025 Studied transformers and attention mechanism.
-### Jan 10 - Working on transformer architecture and fine-tuning for specific tasks
-
-
-
-## Image encoder
+I have created a "CaptionProcessor" class which gives you average sentence embeddings for all the sentences 
+or if you want average sentence embeddings for only the longest captions corresponding to every image there is a 
+function for that too .
