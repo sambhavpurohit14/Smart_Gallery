@@ -59,8 +59,8 @@ class CLIPModel(nn.Module):
         return torch.sum(image_features * text_features, dim=-1) * self.logit_scale.exp().clamp(max=np.log(100))
 
 class CLIPFeatureExtractor:
-    def __init__(self, device, model):
-        self.device = device
+    def __init__(self, model):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model
         self.model.eval()
         self.transform = transforms.Compose([

@@ -17,7 +17,7 @@ class ImageDBManager:
         # Load CLIP model
         self.model = CLIPModel()
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        self.feature_extractor = CLIPFeatureExtractor(self.device, self.model)
+        self.feature_extractor = CLIPFeatureExtractor(self.model)
 
     def add_images_from_folder(self, folder_path):
         if not os.path.isdir(folder_path):

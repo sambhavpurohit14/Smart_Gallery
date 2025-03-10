@@ -10,8 +10,8 @@ import uvicorn
 app = FastAPI()
 
 
-model_path = "smart_gallery_backend\clip_model.py"
-db_path = "smart_gallery_backend"
+model_path = "smart_gallery_backend\clip_model_epoch_12.pt"
+db_path = "test_image_embeddings"
 
 # Initialize ImageDBManager
 db_manager = ImageDBManager(model_path, db_path)
@@ -19,8 +19,8 @@ db_manager = ImageDBManager(model_path, db_path)
 # Load the CLIP model and feature extractor once
 device = torch.device("cpu")
 model = CLIPModel()
-model.load_state_dict(torch.load(model_path, map_location=device))
-feature_extractor = CLIPFeatureExtractor(device=device, model=model)
+model.load_state_dict(torch.load(model_path, map_location=device, weights_only=False))
+feature_extractor = CLIPFeatureExtractor(model=model)
 
 @app.get("/")
 async def root():
@@ -77,8 +77,8 @@ async def search_images(query: str):
         raise HTTPException(status_code=500, detail=f"Error processing search: {str(e)}")
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Default to 8000
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", 8000))  
+    uvicorn.run(app, host="127.0.0.1", port=port)
 
 
 
