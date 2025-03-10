@@ -22,7 +22,7 @@ async def add_images(folder_path: str):
 
 @app.post("/add_image")
 async def add_image(image_path: str):
-    return db_manager.add_single_image(image_path)
+    return db_manager.add_image(image_path)
 
 @app.post("/search_images")
 async def search_images(query: str):
