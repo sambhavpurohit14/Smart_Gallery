@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-import torch
-from clip_model import CLIPModel, CLIPFeatureExtractor
+from pydantic import BaseModel
 from image_db_util import ImageDBManager
+from image_search_util import ImageSearcher
 import os
 import uvicorn
 
@@ -16,11 +15,11 @@ db_path = "test_image_embeddings"
 # Initialize ImageDBManager
 db_manager = ImageDBManager(model_path, db_path)
 
-# Load the CLIP model and feature extractor once
-device = torch.device("cpu")
-model = CLIPModel()
-model.load_state_dict(torch.load(model_path, map_location=device, weights_only=False))
-feature_extractor = CLIPFeatureExtractor(model=model)
+# Initialize ImageSearcher
+image_searcher = ImageSearcher(model_path, db_path)
+
+class SearchQuery(BaseModel):
+    query: str
 
 @app.get("/")
 async def root():
@@ -41,40 +40,8 @@ async def add_image(image_path: str):
     return db_manager.add_image(image_path)
 
 @app.post("/search_images")
-async def search_images(query: str):
-    try:
-        # Extract query features
-        query_features = feature_extractor.extract_text_features(query)
-        
-        # Retrieve all image embeddings from the database
-        all_embeddings = db_manager.collection.get()
-        image_embeddings = all_embeddings.get('embeddings', [])
-        image_ids = all_embeddings.get('ids', [])
-        
-        if not image_embeddings or not image_ids:
-            return {"message": "No images in the database."}
-        
-        # Convert to tensor safely
-        img_embeddings_tensor = torch.tensor(image_embeddings, dtype=torch.float32)
-
-        # Compute similarity scores
-        similarity_scores = torch.matmul(img_embeddings_tensor, query_features.T).squeeze()
-        similarities = [(float(score), img_id) for score, img_id in zip(similarity_scores, image_ids)]
-        similarities.sort(reverse=True)
-
-        # Return the top image result
-        if similarities:
-            top_score, top_image_id = similarities[0]
-            image_metadata = db_manager.collection.get(ids=[top_image_id])
-            if image_metadata and 'metadatas' in image_metadata and image_metadata['metadatas']:
-                image_path = image_metadata['metadatas'][0].get('path')
-                if image_path and os.path.exists(image_path):
-                    return FileResponse(image_path)
-        
-        return {"message": "No matching images found"}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing search: {str(e)}")
+async def search_images(search_query: SearchQuery):
+    return image_searcher.search_images(search_query.query)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))  
