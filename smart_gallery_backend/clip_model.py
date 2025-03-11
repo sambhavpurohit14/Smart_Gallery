@@ -6,6 +6,7 @@ from transformers import BertModel, BertTokenizer
 from torchvision.models import vit_b_16, ViT_B_16_Weights
 from PIL import Image
 import numpy as np
+import io
 
 class ImageEncoder(nn.Module):
     def __init__(self, out_dim):
@@ -50,7 +51,7 @@ class TextEncoder(nn.Module):
         mask = attention_mask.unsqueeze(-1).expand_as(hidden_states)
         summed_hidden_states = hidden_states * mask
         token_counts = mask.sum(dim=1, keepdim=True)
-        avg_pooling = summed_hidden_states.sum(dim=1) / token_counts.clamp(min=1e-9)  # Avoid division by zero
+        avg_pooling = summed_hidden_states.sum(dim=1) / token_counts.clamp(min=1e-9)
         return self.projection(avg_pooling)
 
 class CLIPModel(nn.Module):
@@ -72,7 +73,10 @@ class CLIPFeatureExtractor:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = CLIPModel().to(self.device)
         
-        state_dict = torch.load(model_path, map_location=self.device)
+        with open(model_path, 'rb') as f:
+            buffer = io.BytesIO(f.read())
+        
+        state_dict = torch.load(buffer, map_location=self.device)
         self.model.load_state_dict(state_dict)
         self.model.eval()
         
@@ -92,14 +96,3 @@ class CLIPFeatureExtractor:
             image_features = F.normalize(image_features, dim=-1)
         
         return image_features.cpu().numpy()
-    
-    def extract_text_features(self, query):
-        encoding = self.tokenizer(query, padding='max_length', truncation=True, max_length=64, return_tensors='pt')
-        input_ids = encoding['input_ids'].to(self.device)
-        attention_mask = encoding['attention_mask'].to(self.device)
-        
-        with torch.no_grad():
-            text_features = self.model.text_encoder(input_ids, attention_mask)
-            text_features = F.normalize(text_features, dim=-1)
-        
-        return text_features.cpu().numpy()
