@@ -1,26 +1,81 @@
-import torch
 import chromadb
 from tqdm import tqdm
 import os
 from clip_model import CLIPFeatureExtractor
+from chromadb import Documents, EmbeddingFunction, Embeddings
+import torch
+import numpy as np
+from typing import List
+
+class CLIPEmbeddingFunction(EmbeddingFunction):
+    def __init__(self, model_path):
+        self.feature_extractor = CLIPFeatureExtractor(model_path)
+    
+    def __call__(self, input: Documents) -> Embeddings:
+        embeddings = []
+        for doc in input:
+            if isinstance(doc, str) and os.path.exists(doc):
+                try:
+                    # Extract features
+                    embedding = self.feature_extractor.extract_image_features(doc)
+                    
+                    # Convert to list format
+                    if isinstance(embedding, torch.Tensor):
+                        embedding = embedding.detach().cpu().numpy()
+                    if isinstance(embedding, np.ndarray):
+                        embedding = embedding.squeeze().tolist()
+                    
+                    if not embedding or len(embedding) == 0:  
+                        raise ValueError(f"Empty embedding generated for {doc}")
+
+                    embeddings.append(embedding)
+                except Exception as e:
+                    print(f"Error creating embedding for {doc}: {str(e)}")
+                    embeddings.append([0.0] * 512)  # Fallback to zero embedding
+        return embeddings
 
 class ImageDBManager:
     def __init__(self, model_path, db_path):
         self.db_path = db_path
+        self.embedding_function = CLIPEmbeddingFunction(model_path)
         self.chroma_client = chromadb.PersistentClient(path=self.db_path)
-        self.collection = self.chroma_client.get_or_create_collection(
-            name="image_embeddings",
-            embedding_function=None
-        )
-        
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.collection = self.chroma_client.get_or_create_collection(name="image_embeddings")
 
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+    def add_image(self, image_path):
+        """Adds a single image to the database."""
+        try:
+            image_name = os.path.basename(image_path)
 
-        self.feature_extractor = CLIPFeatureExtractor(model_path)
+            # Check if image already exists
+            existing = self.collection.get(ids=[image_name])
+            if existing and existing.get("ids"):
+                return {"status": "error", "message": f"Image '{image_name}' already exists"}
+
+            # Compute embedding
+            embedding = self.embedding_function([image_path])[0]
+
+            # Convert embedding to a list format
+            if isinstance(embedding, np.ndarray):
+                embedding = embedding.tolist()
+            elif isinstance(embedding, torch.Tensor):
+                embedding = embedding.detach().cpu().numpy().tolist()
+
+            if not isinstance(embedding, list) or len(embedding) == 0:
+                return {"status": "error", "message": f"Invalid embedding for '{image_name}'"}
+
+            # Add image to database
+            self.collection.add(
+                documents=[image_path],
+                embeddings=[embedding],
+                ids=[image_name],
+                metadatas=[{"filename": image_name, "path": image_path}]
+            )
+            return {"status": "success", "message": f"Added '{image_name}'"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     def add_images_from_folder(self, folder_path):
+        """Adds all images from a folder using add_image method."""
         if not os.path.isdir(folder_path):
             return {"status": "error", "message": "Invalid folder path"}
 
@@ -36,58 +91,16 @@ class ImageDBManager:
         errors = []
         added_images = 0
 
-        for image_path in tqdm(image_files, desc="Creating Image Embeddings"):
-            try:
-                image_name = os.path.basename(image_path)
-                existing = self.collection.get(ids=[image_name])
+        for image_path in tqdm(image_files, desc="Adding images to database"):
+            result = self.add_image(image_path)
 
-                if existing and "ids" in existing and existing["ids"]:
-                    print(f"Skipping {image_name}, already exists in database.")
-                    continue
-
-                print(f"Processing image: {image_name}")
-                image_features = self.feature_extractor.extract_image_features(image_path)
-                print(f"Raw embedding shape: {image_features.shape}")
-                image_features = image_features.squeeze().tolist()
-                print(f"Processed embedding for {image_name}: {image_features[:5]}")
-
-                self.collection.add(
-                    ids=[image_name],
-                    embeddings=[image_features],  
-                    metadatas=[{"filename": image_name, "path": image_path}]
-                )
-                print(f"Successfully added {image_name} to database")
+            if result["status"] == "success":
                 added_images += 1
-            except Exception as e:
-                errors.append({"image": image_path, "error": str(e)})
-                print(f"Error processing {image_name}: {e}")
+            else:
+                errors.append(result["message"])
 
         return {
             "status": "success" if added_images > 0 else "error",
             "added_images": added_images,
             "errors": errors
         }
-
-    def add_image(self, image_path):
-        try:
-            image_name = os.path.basename(image_path)
-            existing = self.collection.get(ids=[image_name])
-            if existing and "ids" in existing and existing["ids"]:
-                return {"status": "error", "message": "Image already exists"}
-
-            print(f"Processing single image: {image_name}")
-            image_features = self.feature_extractor.extract_image_features(image_path)
-            print(f"Raw embedding shape: {image_features.shape}")
-            image_features = image_features.squeeze().tolist()
-            print(f"Processed embedding for {image_name}: {image_features[:5]}")
-
-            self.collection.add(
-                ids=[image_name],
-                embeddings=[image_features],  
-                metadatas=[{"filename": image_name, "path": image_path}]
-            )
-            print(f"Successfully added {image_name} to database")
-            return {"status": "success", "message": f"Added {image_name}"}
-        except Exception as e:
-            print(f"Error processing {image_name}: {e}")
-            return {"status": "error", "message": str(e)}

@@ -1,15 +1,34 @@
-from image_db_util import ImageDBManager
 import os
+from image_db_util import ImageDBManager  
 
-test_model_path = r"smart_gallery_backend/clip_model_epoch_12.pt"
-test_db_path = r"smart_gallery_backend/test_image_embeddings"
-folder_path = r"smart_gallery_backend/smart_gallery_test"
+# Set paths
+MODEL_PATH = "smart_gallery_backend\clip_model_epoch_12.pt"  
+DB_PATH = "smart_gallery_backend/test_embeddings"  
+IMAGE_FOLDER = "smart_gallery_backend\smart_gallery_test"  
 
-assert os.path.exists(test_model_path), f"Error: Model file not found at {test_model_path}"
+# Initialize ImageDBManager
+image_db_manager = ImageDBManager(model_path=MODEL_PATH, db_path=DB_PATH)
 
-image_db = ImageDBManager(test_model_path, test_db_path)
-print("ImageDBManager initialized")
+def create_new_database():
+    """Creates a new ChromaDB and adds images from a folder."""
+    if not os.path.isdir(IMAGE_FOLDER):
+        print("Invalid image folder path.")
+        return
 
-create_embeddings = image_db.add_images_from_folder(folder_path)
-print(create_embeddings)
+    print(f"Creating a new database at {DB_PATH}...")
+    
+    # Add images to the database
+    result = image_db_manager.add_images_from_folder(IMAGE_FOLDER)
+    
+    # Print the result
+    if result["status"] == "success":
+        print(f"Database created successfully. {result['added_images']} images added.")
+    else:
+        print(f"Error: {result['message']}")
+    
+    if result["errors"]:
+        print(f"{len(result['errors'])} images had errors.")
+
+if __name__ == "__main__":
+    create_new_database()
 
