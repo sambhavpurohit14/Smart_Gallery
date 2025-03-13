@@ -69,11 +69,11 @@ class CLIPModel(nn.Module):
         return torch.sum(image_features * text_features, dim=-1) * self.logit_scale.exp().clamp(max=100)
 
 class CLIPFeatureExtractor:
-    def __init__(self, model_path):
+    def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = CLIPModel().to(self.device)
         
-        with open(model_path, 'rb') as f:
+        with open('smart_gallery_backend\clip_model_epoch_12.pt', 'rb') as f:
             buffer = io.BytesIO(f.read())
         
         state_dict = torch.load(buffer, map_location=self.device)

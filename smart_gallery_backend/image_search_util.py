@@ -4,15 +4,14 @@ from clip_model import CLIPFeatureExtractor
 import os
 
 class ImageSearcher:
-    def __init__(self, db_path):
-        self.chroma_client = chromadb.PersistentClient(path=db_path)
-        self.collection = self.chroma_client.get_collection(name="image_embeddings")
+    def __init__(self, user_id: str):
+        self.chroma_client = chromadb.PersistentClient(user_id)
+        self.collection = self.chroma_client.get_collection(f"image_embeddings_of_{user_id}")
 
     def search_image(self, query: str):
         """Searches for images based on a query."""
         feature_extractor = CLIPFeatureExtractor(model_path="smart_gallery_backend/clip_model_epoch_12.pt")
         query_embeddings = feature_extractor.extract_text_features(query)
-        print(query_embeddings.shape)
         try:
             results = self.collection.query(query_embeddings=query_embeddings)
             print("Query results:", results)
