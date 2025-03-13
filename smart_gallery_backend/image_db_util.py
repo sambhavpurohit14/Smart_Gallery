@@ -61,7 +61,7 @@ class ImageDBManager:
                 embedding = embedding.detach().cpu().numpy().tolist()
 
             if not isinstance(embedding, list) or len(embedding) == 0:
-                return {"status": "error", "message": f"Invalid embedding for '{image_name}'"}
+                return {"status": "error", "message": f"Invalid embedding for '{image_name}"}
 
             # Add image to database
             self.collection.add(
