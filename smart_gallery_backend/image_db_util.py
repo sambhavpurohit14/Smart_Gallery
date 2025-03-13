@@ -1,20 +1,16 @@
 import chromadb
 from tqdm import tqdm
 import os
-import logging
 from clip_model import CLIPFeatureExtractor
 from chromadb import Documents, EmbeddingFunction, Embeddings
 import torch
 import numpy as np
-from google.cloud import storage
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-
-# GCS Setup 
-GCS_BUCKET_NAME = "your-gcs-bucket-name"
-storage_client = storage.Client()
-bucket = storage_client.bucket(GCS_BUCKET_NAME)
+# This will be shared across all users
+CHROMA_CLIENT = chromadb.AsyncHttpClient(
+    host="placeholder",  # Not sure about this, refer to https://docs.trychroma.com/production/cloud-providers/gcp#step-1-set-up-your-gcp-credentials
+    port=8000
+)
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
@@ -25,7 +21,6 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
         for doc in input:
             if isinstance(doc, str) and os.path.exists(doc):
                 try:
-                    # Extract features using CLIP
                     embedding = self.feature_extractor.extract_image_features(doc)
                     if isinstance(embedding, torch.Tensor):
                         embedding = embedding.detach().cpu().numpy()
@@ -36,69 +31,42 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
                     else:
                         raise ValueError(f"Invalid embedding format for {doc}")
                 except Exception as e:
-                    logging.error(f"Error creating embedding for {doc}: {str(e)}")
-                    embeddings.append([0.0] * 512)  # Fallback embedding
+                    print(f"Error creating embedding for {doc}: {str(e)}")
+                    embeddings.append([0.0] * 512) 
         return embeddings
 
 class ImageDBManager:
     def __init__(self, user_id):
-        self.user_id = user_id
         self.embedding_function = CLIPEmbeddingFunction()
-        
-        self.chroma_client = chromadb.PersistentClient(
-            path="gs://your-chroma-gcs-bucket"
-        )
-        self.collection = self.chroma_client.create_collection(
-            name=f"image_embeddings_of_{user_id}",
+        self.collection = CHROMA_CLIENT.get_or_create_collection(
+            name=f"image_embeddings_{user_id}",
             embedding_function=self.embedding_function
         )
 
-    def upload_to_gcs(self, local_path):
-        """Uploads an image to Google Cloud Storage and returns the GCS URL."""
-        try:
-            blob_name = f"images/{self.user_id}/{os.path.basename(local_path)}"
-            blob = bucket.blob(blob_name)
-            blob.upload_from_filename(local_path)
-            gcs_url = f"gs://{GCS_BUCKET_NAME}/{blob_name}"
-            return gcs_url
-        except Exception as e:
-            logging.error(f"Failed to upload {local_path} to GCS: {e}")
-            return None
-
     def add_image(self, image_path):
-        """Adds a single image to the database with GCS storage."""
         try:
             image_name = os.path.basename(image_path)
-
-            # Check if image already exists in DB
             existing = self.collection.get(ids=[image_name])
             if existing and existing.get("ids"):
                 return {"status": "error", "message": f"Image '{image_name}' already exists"}
 
-            # Upload to GCS
-            gcs_url = self.upload_to_gcs(image_path)
-            if not gcs_url:
-                return {"status": "error", "message": f"Failed to upload {image_name} to GCS"}
-
-            # Add image metadata and embedding
             self.collection.add(
-                documents=[gcs_url],  # Store GCS URL instead of local path
+                documents=[image_path],
                 ids=[image_name],
-                metadatas=[{"filename": image_name, "gcs_url": gcs_url}]
+                metadatas=[{"filename": image_name, "path": image_path}]
             )
-            return {"status": "success", "message": f"Added '{image_name}' to DB"}
+            return {"status": "success", "message": f"Added '{image_name}'"}
         except Exception as e:
-            logging.error(f"Error adding image {image_path}: {e}")
             return {"status": "error", "message": str(e)}
 
     def add_images_from_folder(self, folder_path):
-        """Adds all images from a folder."""
         if not os.path.isdir(folder_path):
             return {"status": "error", "message": "Invalid folder path"}
 
         image_files = [
-            os.path.join(folder_path, f) for f in os.listdir(folder_path)
-            if os.path.isfile(os.path.join(folder_path, f)) and f.lower().endswith((".png", ".jpg", ".jpeg"))
+            os.path.join(folder_path, image_name)
+            for image_name in os.listdir(folder_path)
+            if os.path.isfile(os.path.join(folder_path, image_name)) and image_name.lower().endswith((".png", ".jpg", ".jpeg"))
         ]
 
         if not image_files:
