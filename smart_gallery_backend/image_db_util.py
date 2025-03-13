@@ -39,7 +39,8 @@ class ImageDBManager:
         self.db_path = db_path
         self.embedding_function = CLIPEmbeddingFunction(model_path)
         self.chroma_client = chromadb.PersistentClient(path=self.db_path)
-        self.collection = self.chroma_client.get_or_create_collection(name="image_embeddings")
+        self.collection = self.chroma_client.create_collection(name="image_embeddings", 
+        embedding_function=self.embedding_function)
 
     def add_image(self, image_path):
         """Adds a single image to the database."""
@@ -51,22 +52,9 @@ class ImageDBManager:
             if existing and existing.get("ids"):
                 return {"status": "error", "message": f"Image '{image_name}' already exists"}
 
-            # Compute embedding
-            embedding = self.embedding_function([image_path])[0]
-
-            # Convert embedding to a list format
-            if isinstance(embedding, np.ndarray):
-                embedding = embedding.tolist()
-            elif isinstance(embedding, torch.Tensor):
-                embedding = embedding.detach().cpu().numpy().tolist()
-
-            if not isinstance(embedding, list) or len(embedding) == 0:
-                return {"status": "error", "message": f"Invalid embedding for '{image_name}"}
-
             # Add image to database
             self.collection.add(
                 documents=[image_path],
-                embeddings=[embedding],
                 ids=[image_name],
                 metadatas=[{"filename": image_name, "path": image_path}]
             )
