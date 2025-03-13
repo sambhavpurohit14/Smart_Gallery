@@ -1,51 +1,64 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from image_db_util import ImageDBManager
-from image_search_util import ImageSearcher
-import os
 import uvicorn
-
+from image_db_util import ImageDBManager
+import os
+import uuid
 
 app = FastAPI()
 
+class InitializeDBRequest(BaseModel):
+    user_name: str
 
-model_path = "smart_gallery_backend\clip_model_epoch_12.pt"
-db_path = "test_image_embeddings"
+class ImageRequest(BaseModel):
+    image_path: str
 
-# Initialize ImageDBManager
-db_manager = ImageDBManager(model_path, db_path)
+class FolderRequest(BaseModel):
+    folder_path: str
 
-# Initialize ImageSearcher
-image_searcher = ImageSearcher(model_path, db_path)
-
-class SearchQuery(BaseModel):
+class ImageSearch(BaseModel):
     query: str
 
-@app.get("/")
-async def root():
-    return {"message": "Smart Gallery API Running"}
-
-@app.post("/add_images_from_folder")
-async def add_images(folder_path: str):
-    if not os.path.exists(folder_path):
-        raise HTTPException(status_code=400, detail="Folder path does not exist")
-    
-    return db_manager.add_images_from_folder(folder_path)
+@app.post("/initialize_db")
+async def initialize_db(request: InitializeDBRequest):
+    try:
+        user_id = str(uuid.uuid4())
+        db_manager = ImageDBManager(user_id)
+        return {"message": f"Initialized DB for user {request.user_name} with ID {user_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/add_image")
-async def add_image(image_path: str):
-    if not os.path.exists(image_path):
-        raise HTTPException(status_code=400, detail="Image file does not exist")
-    
-    return db_manager.add_image(image_path)
+async def add_image(request: ImageRequest, user_id: str = Query(...)):
+    try:
+        db_manager = ImageDBManager(user_id)
+        return db_manager.add_image(request.image_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/search_images")
-async def search_images(search_query: SearchQuery):
-    return image_searcher.search_images(search_query.query)
+@app.post("/add_images_from_folder")
+async def add_images_from_folder(request: FolderRequest, user_id: str = Query(...)):
+    try:
+        db_manager = ImageDBManager(user_id)
+        return db_manager.add_images_from_folder(request.folder_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search_image")
+async def search_image(request: ImageSearch, user_id: str = Query(...)):
+    try:
+        result = ImageSearch(user_id)
+        return JSONResponse(content={
+            "image_path": result,
+            "query": request.query
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 

@@ -5,3 +5,7 @@ smart_gallery_backend\__pycache__\*
 smart_gallery_backend\*.pyc
 
 smart_gallery_backend\smart_gallery_test\*
+
+smart_gallery_backend\images\*
+
+smart_gallery_backend\test_embeddings\*
