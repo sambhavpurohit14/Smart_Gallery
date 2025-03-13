@@ -96,3 +96,16 @@ class CLIPFeatureExtractor:
             image_features = F.normalize(image_features, dim=-1)
         
         return image_features.cpu().numpy()
+    
+    def extract_text_features(self, text):
+        inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+        input_ids = inputs['input_ids'].to(self.device)
+        attention_mask = inputs['attention_mask'].to(self.device)
+        
+        with torch.no_grad():
+            text_features = self.model.text_encoder(input_ids, attention_mask)
+            text_features = F.normalize(text_features, dim=-1)
+            text_features = text_features.squeeze(0)
+        
+        
+        return text_features.cpu().numpy()

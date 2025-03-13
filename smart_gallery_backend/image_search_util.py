@@ -1,55 +1,33 @@
-import torch
-from fastapi.responses import FileResponse
 from fastapi import HTTPException
-import os
-from clip_model import CLIPModel, CLIPFeatureExtractor
 import chromadb
-import numpy as np
+from clip_model import CLIPFeatureExtractor
+import os
 
 class ImageSearcher:
-    def __init__(self, model_path, db_path):
-        self.db_path = db_path
-        self.chroma_client = chromadb.PersistentClient(path=self.db_path)
+    def __init__(self, db_path):
+        self.chroma_client = chromadb.PersistentClient(path=db_path)
         self.collection = self.chroma_client.get_collection(name="image_embeddings")
-        self.device = torch.device("cpu")
-        self.model = CLIPModel()
-        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        self.model.eval()
-        self.feature_extractor = CLIPFeatureExtractor(model=self.model)
 
     def search_image(self, query: str):
+        """Searches for images based on a query."""
+        feature_extractor = CLIPFeatureExtractor(model_path="smart_gallery_backend/clip_model_epoch_12.pt")
+        query_embeddings = feature_extractor.extract_text_features(query)
+        print(query_embeddings.shape)
         try:
-            # Extract query features
-            query_features = self.feature_extractor.extract_text_features(query)
+            results = self.collection.query(query_embeddings=query_embeddings)
+            print("Query results:", results)
             
-            # Retrieve all image embeddings from the database
-            all_embeddings = self.collection.get()
-            print("Database content:", all_embeddings)
-            image_embeddings = all_embeddings.get('embeddings', [])
-            image_ids = all_embeddings.get('ids', [])
-            metadata_list = all_embeddings.get('metadatas', [])
-            
-            if not image_embeddings or not image_ids:
-                return {"message": "No images in the database."}
-            
-            # Convert embeddings to tensor
-            img_embeddings_tensor = torch.tensor([np.array(embedding) for embedding in image_embeddings], dtype=torch.float32)
-            query_features_tensor = torch.tensor(query_features, dtype=torch.float32)
-            
-            # Compute similarity scores
-            similarity_scores = torch.matmul(img_embeddings_tensor, query_features_tensor.T).squeeze()
-            similarities = [(float(score), img_id, metadata) for score, img_id, metadata in zip(similarity_scores, image_ids, metadata_list)]
-            similarities.sort(reverse=True)
-            
+            if not results or 'documents' not in results or not results['documents']:
+                return {"message": "No results found"}
+
             # Retrieve the top image result
-            if similarities:
-                top_score, top_image_id, top_image_metadata = similarities[0]
-                image_path = top_image_metadata.get('path')
-                
-                if image_path and os.path.exists(image_path):
-                    return FileResponse(image_path)
-                
-            return {"message": "No matching images found"}
+            top_result = results['documents'][0][1]
+            image_path = top_result
+
+            if image_path and os.path.exists(image_path):
+                return {"image_path": image_path}
+            else:
+                return {"message": "Image path not found"}
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing search: {str(e)}")

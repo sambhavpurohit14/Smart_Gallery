@@ -16,22 +16,22 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
         for doc in input:
             if isinstance(doc, str) and os.path.exists(doc):
                 try:
-                    # Extract features
+                    # Extract features using CLIP
                     embedding = self.feature_extractor.extract_image_features(doc)
-                    
-                    # Convert to list format
+                    # Convert tensor to numpy array and then to list
                     if isinstance(embedding, torch.Tensor):
                         embedding = embedding.detach().cpu().numpy()
                     if isinstance(embedding, np.ndarray):
                         embedding = embedding.squeeze().tolist()
-                    
-                    if not embedding or len(embedding) == 0:  
-                        raise ValueError(f"Empty embedding generated for {doc}")
-
-                    embeddings.append(embedding)
+                    # Ensure embedding is a list of floats
+                    if isinstance(embedding, list) and all(isinstance(i, float) for i in embedding):
+                        embeddings.append(embedding)
+                    else:
+                        raise ValueError(f"Invalid embedding format for {doc}")
                 except Exception as e:
                     print(f"Error creating embedding for {doc}: {str(e)}")
-                    embeddings.append([0.0] * 512)  # Fallback to zero embedding
+                    # Add a zero embedding as fallback
+                    embeddings.append([0.0] * 512)  # Assuming 512-dimensional embeddings
         return embeddings
 
 class ImageDBManager:
@@ -39,8 +39,10 @@ class ImageDBManager:
         self.db_path = db_path
         self.embedding_function = CLIPEmbeddingFunction(model_path)
         self.chroma_client = chromadb.PersistentClient(path=self.db_path)
-        self.collection = self.chroma_client.create_collection(name="image_embeddings", 
-        embedding_function=self.embedding_function)
+        self.collection = self.chroma_client.create_collection(
+            name="image_embeddings", 
+            embedding_function=self.embedding_function
+        )
 
     def add_image(self, image_path):
         """Adds a single image to the database."""
