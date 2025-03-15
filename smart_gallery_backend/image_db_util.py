@@ -6,7 +6,8 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 import torch
 import numpy as np
 
-
+# Initialize the Chroma HTTTP once
+CHROMA_CLIENT = chromadb.HttpClient(host="placeholder", port =8000)
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
@@ -34,8 +35,7 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
 class ImageDBManager:
     def __init__(self, user_id):
         self.embedding_function = CLIPEmbeddingFunction()
-        self.client = chromadb.PersistentClient(path="/home/harshithranjan6971/chromadb_data")
-        self.collection = self.client.get_or_create_collection(
+        self.collection = CHROMA_CLIENT.get_or_create_collection(
             name=f"image_embeddings_{user_id}",
             embedding_function=self.embedding_function
         )
