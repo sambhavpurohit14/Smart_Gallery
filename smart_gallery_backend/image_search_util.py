@@ -7,7 +7,7 @@ from image_db_util import ImageDBManager
 class ImageSearcher:
     def __init__(self, user_id: str):
         self.chroma_client = ImageDBManager(user_id)
-        self.collection = self.get_collection(f"image_embeddings_{user_id}")
+        self.collection = self.chroma_client.get_collection(f"image_embeddings_{user_id}")
 
     def search_image(self, query: str):
         """Searches for images based on a query."""
