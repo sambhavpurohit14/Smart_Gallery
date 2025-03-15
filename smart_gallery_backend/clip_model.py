@@ -7,6 +7,7 @@ from torchvision.models import vit_b_16, ViT_B_16_Weights
 from PIL import Image
 import numpy as np
 import io
+import os  # Add this import
 
 class ImageEncoder(nn.Module):
     def __init__(self, out_dim):
@@ -66,19 +67,28 @@ class CLIPModel(nn.Module):
         text_features = self.text_encoder(caption_ids, caption_mask)
         image_features = F.normalize(image_features, dim=-1)
         text_features = F.normalize(text_features, dim=-1)
-        return torch.sum(image_features * text_features, dim=-1) * self.logit_scale.exp().clamp(max=100)
+        return torch.matmul(image_features, text_features.T) * self.logit_scale.exp().clamp(max=100)
 
 class CLIPFeatureExtractor:
-    def __init__(self):
+    def __init__(self, model_path=None):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = CLIPModel().to(self.device)
+        self.model.eval()  # Ensure the model is in evaluation mode
         
-        with open('smart_gallery_backend\clip_model_epoch_12.pt', 'rb') as f:
-            buffer = io.BytesIO(f.read())
+        if model_path is None:
+            model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_12.pt')
         
-        state_dict = torch.load(buffer, map_location=self.device)
-        self.model.load_state_dict(state_dict)
-        self.model.eval()
+        try:
+            with open(model_path, 'rb') as f:
+                buffer = io.BytesIO(f.read())
+            
+            state_dict = torch.load(buffer, map_location=self.device)
+            self.model.load_state_dict(state_dict, strict=False)  # Allow partial model loading
+            self.model.eval()
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Model file not found at {model_path}")
+        except Exception as e:
+            raise RuntimeError(f"Error loading model: {str(e)}")
         
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -89,16 +99,17 @@ class CLIPFeatureExtractor:
     
     def extract_image_features(self, image_path):
         image = Image.open(image_path).convert('RGB')
-        image = self.transform(image).unsqueeze(0).to(self.device)
+        image_tensor = self.transform(image)  
+        image_tensor = image_tensor.unsqueeze(0).to(self.device)  
         
         with torch.no_grad():
-            image_features = self.model.image_encoder(image)
+            image_features = self.model.image_encoder(image_tensor)
             image_features = F.normalize(image_features, dim=-1)
         
         return image_features.cpu().numpy()
     
     def extract_text_features(self, text):
-        inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+        inputs = self.tokenizer(text, return_tensors='pt', padding=True, truncation=True)  # No max_length added as requested
         input_ids = inputs['input_ids'].to(self.device)
         attention_mask = inputs['attention_mask'].to(self.device)
         
@@ -107,5 +118,5 @@ class CLIPFeatureExtractor:
             text_features = F.normalize(text_features, dim=-1)
             text_features = text_features.squeeze(0)
         
-        
         return text_features.cpu().numpy()
+

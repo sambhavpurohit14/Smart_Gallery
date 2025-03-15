@@ -7,11 +7,12 @@ from image_db_util import ImageDBManager
 class ImageSearcher:
     def __init__(self, user_id: str):
         self.chroma_client = ImageDBManager(user_id)
-        self.collection = self.chroma_client.get_collection(f"image_embeddings_{user_id}")
+        # Access the collection property directly from the ImageDBManager instance
+        self.collection = self.chroma_client.collection
 
     def search_image(self, query: str):
         """Searches for images based on a query."""
-        feature_extractor = CLIPFeatureExtractor(model_path="smart_gallery_backend/clip_model_epoch_12.pt")
+        feature_extractor = CLIPFeatureExtractor()
         query_embeddings = feature_extractor.extract_text_features(query)
         try:
             results = self.collection.query(query_embeddings=query_embeddings)

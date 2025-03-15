@@ -6,11 +6,7 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 import torch
 import numpy as np
 
-# This will be shared across all users
-CHROMA_CLIENT = chromadb.AsyncHttpClient(
-    host="placeholder",  # Not sure about this, refer to https://docs.trychroma.com/production/cloud-providers/gcp#step-1-set-up-your-gcp-credentials
-    port=8000
-)
+
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
@@ -38,7 +34,8 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
 class ImageDBManager:
     def __init__(self, user_id):
         self.embedding_function = CLIPEmbeddingFunction()
-        self.collection = CHROMA_CLIENT.get_or_create_collection(
+        self.client = chromadb.PersistentClient(path="/home/harshithranjan6971/chromadb_data")
+        self.collection = self.client.get_or_create_collection(
             name=f"image_embeddings_{user_id}",
             embedding_function=self.embedding_function
         )
