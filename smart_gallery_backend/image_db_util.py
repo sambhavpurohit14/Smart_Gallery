@@ -7,7 +7,7 @@ import torch
 import numpy as np
 
 # Initialize the Chroma HTTTP once
-CHROMA_CLIENT = chromadb.HttpClient(host="placeholder", port =8000)
+CHROMA_CLIENT = chromadb.HttpClient(host="34.58.248.218", port =8000)
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
