@@ -5,7 +5,7 @@ from routes import db_router, image_router
 
 app = FastAPI(title="Smart Gallery API")
 
-@app.get('/heartbeat', tags=["health"])
+@app.get('/', tags=["health"])
 async def heartbeat():
     return {"status": "ok"}
 
