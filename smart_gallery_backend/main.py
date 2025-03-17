@@ -14,7 +14,7 @@ app.include_router(db_router)
 app.include_router(image_router)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("PORT", 5080))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 

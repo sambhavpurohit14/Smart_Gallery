@@ -1,0 +1,86 @@
+[33mWARNING[0m:  [17-03-2025 22:08:32] chroma_server_nofile is not supported on Windows. chroma_server_nofile will not be set.
+[32mINFO[0m:     [17-03-2025 22:08:33] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component System
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component SqliteDB
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component Posthog
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component LocalExecutor
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component SegmentAPI
+[36mDEBUG[0m:    [17-03-2025 22:08:33] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [17-03-2025 22:08:33] Started server process [[36m24208[0m]
+[32mINFO[0m:     [17-03-2025 22:08:33] Waiting for application startup.
+[32mINFO[0m:     [17-03-2025 22:08:33] Application startup complete.
+[32mINFO[0m:     [17-03-2025 22:08:33] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [17-03-2025 22:10:22] Shutting down
+[32mINFO[0m:     [17-03-2025 22:10:22] Waiting for application shutdown.
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component System
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component SegmentAPI
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component LocalExecutor
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component LocalSegmentManager
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component SimpleAsyncRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component Posthog
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component SqliteDB
+[36mDEBUG[0m:    [17-03-2025 22:10:22] Stopping component OpenTelemetryClient
+[32mINFO[0m:     [17-03-2025 22:10:22] Application shutdown complete.
+[32mINFO[0m:     [17-03-2025 22:10:22] Finished server process [[36m24208[0m]
+[33mWARNING[0m:  [17-03-2025 22:11:25] chroma_server_nofile is not supported on Windows. chroma_server_nofile will not be set.
+[32mINFO[0m:     [17-03-2025 22:11:26] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component System
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component SqliteDB
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component Posthog
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component LocalExecutor
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component SegmentAPI
+[36mDEBUG[0m:    [17-03-2025 22:11:26] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [17-03-2025 22:11:26] Started server process [[36m15308[0m]
+[32mINFO[0m:     [17-03-2025 22:11:26] Waiting for application startup.
+[32mINFO[0m:     [17-03-2025 22:11:26] Application startup complete.
+[32mINFO[0m:     [17-03-2025 22:11:26] Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [17-03-2025 22:11:28] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:29] 127.0.0.1:59224 - "GET /favicon.ico HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:32] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:32] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:32] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:33] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:33] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:34] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:34] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:11:34] 127.0.0.1:59224 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [17-03-2025 22:12:05] Shutting down
+[32mINFO[0m:     [17-03-2025 22:12:05] Waiting for application shutdown.
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component System
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component SegmentAPI
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component LocalExecutor
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component LocalSegmentManager
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component SimpleAsyncRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component Posthog
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component SqliteDB
+[36mDEBUG[0m:    [17-03-2025 22:12:05] Stopping component OpenTelemetryClient
+[32mINFO[0m:     [17-03-2025 22:12:05] Application shutdown complete.
+[32mINFO[0m:     [17-03-2025 22:12:05] Finished server process [[36m15308[0m]
+[33mWARNING[0m:  [17-03-2025 22:15:29] chroma_server_nofile is not supported on Windows. chroma_server_nofile will not be set.
+[32mINFO[0m:     [17-03-2025 22:15:29] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component System
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component SqliteDB
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component Posthog
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component LocalExecutor
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component SegmentAPI
+[36mDEBUG[0m:    [17-03-2025 22:15:29] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [17-03-2025 22:15:29] Started server process [[36m12984[0m]
+[32mINFO[0m:     [17-03-2025 22:15:29] Waiting for application startup.
+[32mINFO[0m:     [17-03-2025 22:15:29] Application startup complete.
+[32mINFO[0m:     [17-03-2025 22:15:29] Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
