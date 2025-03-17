@@ -1,7 +1,7 @@
 import chromadb
 
 chroma_client = chromadb.HttpClient(
-    host="34.58.248.218",
+    host="35.238.154.187",
     port=8000
 )
 
