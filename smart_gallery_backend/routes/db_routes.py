@@ -1,12 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uuid
 import logging
-import os
-import chromadb
 from image_db_util import ImageDBManager
-import db_client  
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +12,6 @@ router = APIRouter()
 
 class InitializeDBRequest(BaseModel):
     user_name: str
-    db_path: str  # Path where Chroma will store database files
 
 @router.post("/initialize", summary="Initialize a database for a user")
 async def initialize_db(request: InitializeDBRequest):
@@ -24,23 +20,15 @@ async def initialize_db(request: InitializeDBRequest):
         user_id = str(uuid.uuid4())
         logger.info(f"Initializing database for user {request.user_name} with ID {user_id}")
         
-        # Create the directory if it doesn't exist
-        os.makedirs(request.db_path, exist_ok=True)
-        
-        # Initialize Chroma PersistentClient with the specified path
-        db_client.CHROMA_CLIENT = chromadb.PersistentClient(path=request.db_path)
-        logger.info(f"ChromaDB PersistentClient initialized at path: {request.db_path}")
-        
         # Use the class method to get or create DB manager
-        db_manager = ImageDBManager.get_db_manager(user_id, db_client.CHROMA_CLIENT)
+        db_manager = ImageDBManager.get_db_manager(user_id)
         
         return JSONResponse(
             status_code=200,
             content={
                 "status": "success",
                 "message": f"Database initialized for user {request.user_name}",
-                "user_id": user_id,
-                "db_path": request.db_path
+                "user_id": user_id
             }
         )
     except Exception as e:
