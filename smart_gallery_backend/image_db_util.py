@@ -40,15 +40,81 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
         return embeddings
 
 class ImageDBManager:
+    _instances = {}
+    
     @classmethod
-    def get_chroma_client(cls):
-        """Get the ChromaDB client from the main application."""
+    def get_db_manager(cls, user_id, client=None):
+        if user_id not in cls._instances:
+            cls._instances[user_id] = ImageDBManager(user_id, client)
+        return cls._instances[user_id]
+        
+    def __init__(self, user_id: str, chroma_client=None, db_path=None):
+        """
+        Initialize the ImageDBManager.
+        
+        Args:
+            user_id: The unique identifier for the user.
+            chroma_client: An existing ChromaDB client to use.
+            db_path: Path where the ChromaDB files should be stored.
+        """
+        self.user_id = user_id
+        self.embedding_function = CLIPEmbeddingFunction()
+        
+        # Use the provided client or create a new one with the provided path
+        if chroma_client is not None:
+            self.client = chroma_client
+        elif db_path is not None:
+            self.client = self.get_chroma_client(db_path)
+        else:
+            raise ValueError("Either chroma_client or db_path must be provided")
+        
+        # Get or create the collection for this user
+        collection_name = f"image_embeddings_{user_id}"
+        try:
+            self.collection = self.client.get_collection(
+                name=collection_name, 
+                embedding_function=self.embedding_function
+            )
+            logger.info(f"Found existing collection for user {user_id}")
+        except Exception:
+            logger.info(f"Creating new collection for user {user_id}")
+            self.collection = self.client.create_collection(
+                name=collection_name,
+                embedding_function=self.embedding_function
+            )
+
+    @classmethod
+    def get_chroma_client(cls, db_path=None):
+        """Get the ChromaDB client from the main application.
+        
+        Args:
+            db_path: Path to store the ChromaDB files
+        """
         try:
             from main import CHROMA_CLIENT
-            return CHROMA_CLIENT
+            if (CHROMA_CLIENT is not None and db_path is None):
+                return CHROMA_CLIENT
         except ImportError:
-            logger.warning("Could not import CHROMA_CLIENT from main, creating a new client")
-            return chromadb.HttpClient(host="34.123.164.56", port=8000) # fallback to reinitializing client
+            logger.warning("Could not import CHROMA_CLIENT from main")
+        
+        # If we have a db_path, always create a PersistentClient at that location
+        if db_path:
+            logger.info(f"Creating new PersistentClient at: {db_path}")
+            # Create the directory if it doesn't exist
+            os.makedirs(db_path, exist_ok=True)
+            client = chromadb.PersistentClient(path=db_path)
+            
+            # Update the global client reference if possible
+            try:
+                import main
+                main.CHROMA_CLIENT = client
+            except ImportError:
+                pass
+                
+            return client
+        
+        # If we get here, we couldn't get a client and don't have a path
+        raise ValueError("No ChromaDB client available and no db_path provided")
     
     @classmethod
     def get_db_manager(cls, user_id: str, chroma_client=None) -> 'ImageDBManager':
@@ -67,32 +133,6 @@ class ImageDBManager:
             _db_managers_cache[user_id] = ImageDBManager(user_id, chroma_client)
             logger.info(f"Created new ImageDBManager for user {user_id}")
         return _db_managers_cache[user_id]
-
-    def __init__(self, user_id: str, chroma_client=None):
-        """
-        Initialize the ImageDBManager.
-        
-        Args:
-            user_id: The unique identifier for the user.
-            chroma_client: An existing ChromaDB client to use. If None, a new one is created.
-        """
-        self.user_id = user_id
-        self.embedding_function = CLIPEmbeddingFunction()
-        
-        # Use the provided client or create a new one
-        self.client = chroma_client or self.get_chroma_client()
-        
-        # Get or create the collection for this user
-        collection_name = f"image_embeddings_{user_id}"
-        try:
-            self.collection = self.client.get_collection(name=collection_name)
-            logger.info(f"Found existing collection for user {user_id}")
-        except Exception:
-            logger.info(f"Creating new collection for user {user_id}")
-            self.collection = self.client.create_collection(
-                name=collection_name,
-                embedding_function=self.embedding_function
-            )
 
     def add_image(self, image_path: str) -> Dict[str, Any]:
         """Add a single image to the database."""
@@ -122,11 +162,46 @@ class ImageDBManager:
             logger.error(f"Error adding image {image_path}: {str(e)}")
             return {"status": "error", "message": str(e)}
 
-    def add_images_from_folder(self, folder_path: str) -> Dict[str, Any]:
-        """Add all images from a folder to the database."""
+    def add_images_from_folder(self, folder_path: str, use_as_db_path: bool = True) -> Dict[str, Any]:
+        """Add all images from a folder to the database.
+        
+        Args:
+            folder_path: Path to the folder containing images
+            use_as_db_path: If True, store the ChromaDB files in a subdirectory of this folder
+        """
         if not os.path.isdir(folder_path):
             return {"status": "error", "message": "Invalid folder path"}
 
+        # If requested, create a database directory within the folder
+        db_path = None
+        if use_as_db_path:
+            db_path = os.path.join(folder_path, ".chromadb")
+            
+            try:
+                # Update the client to a PersistentClient at the new location
+                self.client = self.get_chroma_client(db_path)
+                
+                # We need to recreate/reconnect to the collection with the new client
+                collection_name = f"image_embeddings_{self.user_id}"
+                try:
+                    self.collection = self.client.get_collection(
+                        name=collection_name,
+                        embedding_function=self.embedding_function
+                    )
+                    logger.info(f"Using existing collection for user {self.user_id}")
+                except Exception:
+                    logger.info(f"Creating new collection for user {self.user_id}")
+                    self.collection = self.client.create_collection(
+                        name=collection_name,
+                        embedding_function=self.embedding_function
+                    )
+                
+                logger.info(f"ChromaDB initialized at {db_path}")
+            except Exception as e:
+                logger.error(f"Failed to initialize ChromaDB at {db_path}: {str(e)}")
+                return {"status": "error", "message": f"Database initialization failed: {str(e)}"}
+
+        # Find all image files
         image_files = [
             os.path.join(folder_path, image_name)
             for image_name in os.listdir(folder_path)
@@ -151,7 +226,8 @@ class ImageDBManager:
             "status": "success" if added_images > 0 else "error",
             "added_images": added_images,
             "total_images": len(image_files),
-            "errors": errors
+            "errors": errors,
+            "db_path": db_path
         }
 
 
