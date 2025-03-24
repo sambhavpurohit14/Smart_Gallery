@@ -9,9 +9,6 @@ from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-# Cache for ImageDBManager instances
-_db_managers: Dict[str, 'ImageDBManager'] = {}
-
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
         self.feature_extractor = CLIPFeatureExtractor()
@@ -36,13 +33,16 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
         return embeddings
 
 class ImageDBManager:
+    _instances: Dict[str, 'ImageDBManager'] = {} #Maps user_id to ImageDBManager instance
+    
+    # Return the singleton instance for the given user_id
     @classmethod
     def get_instance(cls, user_id: str) -> 'ImageDBManager':
         """Get or create an ImageDBManager instance for the given user_id."""
-        if user_id not in _db_managers:
+        if user_id not in cls._instances:
             from main import CHROMA_CLIENT
-            _db_managers[user_id] = cls(user_id, CHROMA_CLIENT)
-        return _db_managers[user_id]
+            cls._instances[user_id] = cls(user_id, CHROMA_CLIENT)
+        return cls._instances[user_id]
 
     def __init__(self, user_id: str, chroma_client):
         """Initialize ImageDBManager with user_id and ChromaDB client."""

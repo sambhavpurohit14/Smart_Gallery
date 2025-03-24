@@ -10,10 +10,11 @@ class ImageSearcher:
     def __init__(self, user_id: str):
         """Initialize ImageSearcher with user_id."""
         try:
-            # Get cached ImageDBManager instance
-            self.db_manager = ImageDBManager.get_instance(user_id)
-            self.collection = self.db_manager.collection
-            self.feature_extractor = CLIPFeatureExtractor()
+            # Use the singleton instance
+            db_manager = ImageDBManager.get_instance(user_id)
+            self.collection = db_manager.collection
+            # Use the existing feature extractor from db_manager
+            self.feature_extractor = db_manager.embedding_function.feature_extractor
         except Exception as e:
             logger.error(f"Failed to initialize ImageSearcher: {e}")
             raise HTTPException(status_code=500, detail=str(e))
