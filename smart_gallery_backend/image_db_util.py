@@ -10,8 +10,13 @@ from typing import Dict, Optional
 logger = logging.getLogger(__name__)
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
-    def __init__(self):
-        self.feature_extractor = CLIPFeatureExtractor()
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(CLIPEmbeddingFunction, cls).__new__(cls)
+            cls._instance.feature_extractor = CLIPFeatureExtractor()
+        return cls._instance
     
     def __call__(self, input: Documents) -> Embeddings:
         embeddings = []
@@ -20,20 +25,17 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
                 try:
                     embedding = self.feature_extractor.extract_image_features(doc)
                     if isinstance(embedding, torch.Tensor):
-                        embedding = embedding.detach().cpu().numpy()
-                    if isinstance(embedding, np.ndarray):
-                        embedding = embedding.squeeze().tolist()
-                    if isinstance(embedding, list) and all(isinstance(i, float) for i in embedding):
-                        embeddings.append(embedding)
+                        embeddings.append(embedding.detach().cpu().tolist())
                     else:
-                        raise ValueError(f"Invalid embedding format for {doc}")
+                        raise ValueError(f"Expected torch.Tensor but got {type(embedding)}")
                 except Exception as e:
-                    print(f"Error creating embedding for {doc}: {str(e)}")
+                    logger.error(f"Error creating embedding for {doc}: {str(e)}")
                     embeddings.append([0.0] * 512) 
         return embeddings
 
 class ImageDBManager:
     _instances: Dict[str, 'ImageDBManager'] = {} #Maps user_id to ImageDBManager instance
+    _embedding_function = CLIPEmbeddingFunction()  # Single shared instance
     
     # Return the singleton instance for the given user_id
     @classmethod
@@ -47,7 +49,7 @@ class ImageDBManager:
     def __init__(self, user_id: str, chroma_client):
         """Initialize ImageDBManager with user_id and ChromaDB client."""
         self.user_id = user_id
-        self.embedding_function = CLIPEmbeddingFunction()
+        self.embedding_function = self._embedding_function
         self.client = chroma_client
         self.collection = self.client.get_or_create_collection(
             name=f"image_embeddings_{user_id}",

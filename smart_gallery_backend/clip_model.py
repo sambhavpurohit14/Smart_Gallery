@@ -70,13 +70,12 @@ class CLIPModel(nn.Module):
         return torch.matmul(image_features, text_features.T) * self.logit_scale.exp().clamp(max=100)
 
 class CLIPFeatureExtractor:
-    def __init__(self, model_path=None):
+    def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = CLIPModel().to(self.device)
-        self.model.eval()  # Ensure the model is in evaluation mode
+        self.model.eval()  
         
-        if model_path is None:
-            model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_12.pt')
+        model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_30.pt')
         
         try:
             with open(model_path, 'rb') as f:
