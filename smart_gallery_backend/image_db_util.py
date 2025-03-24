@@ -1,13 +1,16 @@
-import chromadb
-from tqdm import tqdm
 import os
+import logging
+from tqdm import tqdm
 from clip_model import CLIPFeatureExtractor
 from chromadb import Documents, EmbeddingFunction, Embeddings
 import torch
 import numpy as np
+from typing import Dict, Optional
 
-# Initialize the Chroma HTTTP once
-CHROMA_CLIENT = chromadb.HttpClient(host="35.238.154.187", port =8000)
+logger = logging.getLogger(__name__)
+
+# Cache for ImageDBManager instances
+_db_managers: Dict[str, 'ImageDBManager'] = {}
 
 class CLIPEmbeddingFunction(EmbeddingFunction):
     def __init__(self):
@@ -33,9 +36,20 @@ class CLIPEmbeddingFunction(EmbeddingFunction):
         return embeddings
 
 class ImageDBManager:
-    def __init__(self, user_id):
+    @classmethod
+    def get_instance(cls, user_id: str) -> 'ImageDBManager':
+        """Get or create an ImageDBManager instance for the given user_id."""
+        if user_id not in _db_managers:
+            from main import CHROMA_CLIENT
+            _db_managers[user_id] = cls(user_id, CHROMA_CLIENT)
+        return _db_managers[user_id]
+
+    def __init__(self, user_id: str, chroma_client):
+        """Initialize ImageDBManager with user_id and ChromaDB client."""
+        self.user_id = user_id
         self.embedding_function = CLIPEmbeddingFunction()
-        self.collection = CHROMA_CLIENT.get_or_create_collection(
+        self.client = chroma_client
+        self.collection = self.client.get_or_create_collection(
             name=f"image_embeddings_{user_id}",
             embedding_function=self.embedding_function
         )

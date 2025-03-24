@@ -1,19 +1,26 @@
 from fastapi import HTTPException
-import chromadb
-from clip_model import CLIPFeatureExtractor
 import os
+import logging
+from clip_model import CLIPFeatureExtractor
 from image_db_util import ImageDBManager
+
+logger = logging.getLogger(__name__)
 
 class ImageSearcher:
     def __init__(self, user_id: str):
-        self.chroma_client = ImageDBManager(user_id)
-        # Access the collection property directly from the ImageDBManager instance
-        self.collection = self.chroma_client.collection
+        """Initialize ImageSearcher with user_id."""
+        try:
+            # Get cached ImageDBManager instance
+            self.db_manager = ImageDBManager.get_instance(user_id)
+            self.collection = self.db_manager.collection
+            self.feature_extractor = CLIPFeatureExtractor()
+        except Exception as e:
+            logger.error(f"Failed to initialize ImageSearcher: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     def search_image(self, query: str):
         """Searches for images based on a query."""
-        feature_extractor = CLIPFeatureExtractor()
-        query_embeddings = feature_extractor.extract_text_features(query)
+        query_embeddings = self.feature_extractor.extract_text_features(query)
         try:
             results = self.collection.query(query_embeddings=query_embeddings)
             print("Query results:", results)
