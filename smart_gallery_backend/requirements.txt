@@ -8,3 +8,4 @@ tqdm==4.67.1
 transformers==4.49.0
 uvicorn==0.34.0
 chromadb
+gdown
