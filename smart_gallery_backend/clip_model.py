@@ -72,23 +72,9 @@ class CLIPModel(nn.Module):
 
 class CLIPFeatureExtractor:
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         self.model = CLIPModel().to(self.device)
         self.model.eval()  
-        
-        # model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_30.pt')
-        
-        # try:
-        #     with open(model_path, 'rb') as f:
-        #         buffer = io.BytesIO(f.read())
-            
-        #     state_dict = torch.load(buffer, map_location=self.device)
-        #     self.model.load_state_dict(state_dict)
-        #     self.model.eval()
-        # except FileNotFoundError:
-        #     raise FileNotFoundError(f"Model file not found at {model_path}")
-        # except Exception as e:
-        #     raise RuntimeError(f"Error loading model: {str(e)}")
         
         drive_file_id = "1GB7Qs_tOD5JGNiq1PFv-cN5Bg3drENUX"
         gdrive_url = f'https://drive.google.com/uc?id={drive_file_id}'
@@ -107,7 +93,6 @@ class CLIPFeatureExtractor:
             self.model.eval()
         except Exception as e:
             raise RuntimeError(f"Error loading model: {str(e)}")
-        
         
         
         self.transform = transforms.Compose([
