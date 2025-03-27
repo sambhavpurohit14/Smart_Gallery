@@ -1,5 +1,7 @@
 # Terraform configuration files
 
+smart_gallery_backend\clip_model_epoch_30.pt
+
 *.tf
 *.tfstate
 *.tfstate.*
