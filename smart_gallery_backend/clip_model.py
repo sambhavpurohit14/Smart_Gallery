@@ -7,7 +7,6 @@ from torchvision.models import vit_b_16, ViT_B_16_Weights
 from PIL import Image
 import numpy as np
 import io
-import os
 import gdown  
 
 class ImageEncoder(nn.Module):
