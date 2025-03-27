@@ -7,7 +7,8 @@ from torchvision.models import vit_b_16, ViT_B_16_Weights
 from PIL import Image
 import numpy as np
 import io
-import os  
+import os
+import gdown  
 
 class ImageEncoder(nn.Module):
     def __init__(self, out_dim):
@@ -75,19 +76,39 @@ class CLIPFeatureExtractor:
         self.model = CLIPModel().to(self.device)
         self.model.eval()  
         
-        model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_30.pt')
+        # model_path = os.path.join('smart_gallery_backend', 'clip_model_epoch_30.pt')
         
-        try:
-            with open(model_path, 'rb') as f:
-                buffer = io.BytesIO(f.read())
+        # try:
+        #     with open(model_path, 'rb') as f:
+        #         buffer = io.BytesIO(f.read())
             
+        #     state_dict = torch.load(buffer, map_location=self.device)
+        #     self.model.load_state_dict(state_dict)
+        #     self.model.eval()
+        # except FileNotFoundError:
+        #     raise FileNotFoundError(f"Model file not found at {model_path}")
+        # except Exception as e:
+        #     raise RuntimeError(f"Error loading model: {str(e)}")
+        
+        drive_file_id = "1GB7Qs_tOD5JGNiq1PFv-cN5Bg3drENUX"
+        gdrive_url = f'https://drive.google.com/uc?id={drive_file_id}'
+
+        try:
+            print("Loading model directly from Google Drive...")
+            buffer = io.BytesIO()  # Create an in-memory buffer
+
+            # Download model as bytes into the buffer
+            gdown.download(gdrive_url, output=buffer, quiet=False)
+
+            buffer.seek(0)  # Reset buffer position
             state_dict = torch.load(buffer, map_location=self.device)
-            self.model.load_state_dict(state_dict)
+
+            self.model.load_state_dict(state_dict, strict=False)
             self.model.eval()
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Model file not found at {model_path}")
         except Exception as e:
             raise RuntimeError(f"Error loading model: {str(e)}")
+        
+        
         
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
